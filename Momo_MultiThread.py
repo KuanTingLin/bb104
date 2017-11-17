@@ -58,6 +58,7 @@ def crawler(items):
     print("item " + str(page) + " crawler done")
 
 if __name__ == "__main__":
+    thStart = datetime.now()
     resp = requests.get(URL,headers = headers)
     s = bs(resp.text, 'html5lib')
     for ss in range(len(s.select("a"))): # 抓主頁
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     pages = len(listmomoall)
     numThread = 4
 
-    for i in range(pages, pages - 4, -1):  # 爬item動作
+    for i in range(1,4):  # 爬item動作
         queue.put(i)
     threads = []
     for j in range(numThread):  # 建立多執緒清單
@@ -103,7 +104,7 @@ if __name__ == "__main__":
     print("下半段")
 
     items = len(listmomo_goods)
-    for i in range(items, items-1, -1):  # 爬item動作
+    for i in range(1,4):  # 爬item動作
         queue.put(i)
     threads = []
     for j in range(numThread):  # 建立多執緒清單
@@ -120,5 +121,5 @@ if __name__ == "__main__":
         f.write(json.dumps(items_data, ensure_ascii=False, indent=4))
 
     print("執行緒:" + str(numThread))
-    print("文章數:" + str(len(CF_Data)))
+    print("筆數:" + str(len(items_data)))
     print("耗時:" + timeSpent)

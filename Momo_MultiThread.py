@@ -29,16 +29,13 @@ def worker():
 
 def crawler(items):
     if _step_ == True:# 將商品頁的每一頁網址抓下來
-        print("now is " + str(items))
         res = requests.get(listmomoall[items], headers=headers)
         s = bs(res.text, 'html5lib')
         eachgood = s.select("div.prdListArea > ul > li.eachGood > a")  # 單頁商品數
         for j in range(len(eachgood)):
             listmomo_goods.append(URLsource + eachgood[j].get("href", "no"))
             print("now is go  " + str(items) + ":" + str(j))
-            time.sleep(0.001)
     else :# 抓所有品項資訊
-        print("now are " + str(items))
         res = requests.get(listmomo_goods[items], headers=headers)
         s = bs(res.text, 'html5lib')
         title = s.select_one("h1").text
@@ -74,7 +71,7 @@ if __name__ == "__main__":
             listmomo_goods.append(URLsource+r_goods[0])
     print(listmomo)
     print(listmomo_goods)
-    for i in range(len(listmomo)): # 將商品頁的每一頁網址抓下來
+    for i in range(len(listmomo)): # 將每個商品頁的每一頁網址抓下來
         res = requests.get(listmomo[i], headers=headers)
         s = bs(res.text, 'html5lib')
         pages = re.findall("/(\d*)", s.select_one("div.pageArea > dl > dt > span").text)[0]  # 商品頁數
@@ -93,8 +90,8 @@ if __name__ == "__main__":
     print("first = " + timeSpent);
     pages = len(listmomoall)
     numThread = 4
-
-    for i in range(1,5):  # 爬item動作
+    print(pages)
+    for i in range(1,pages):  # 爬page動作
         queue.put(i)
     threads = []
     for j in range(numThread):  # 建立多執緒清單
@@ -112,7 +109,8 @@ if __name__ == "__main__":
     print("下半段")
 
     items = len(listmomo_goods)
-    for i in range(1,5):  # 爬item動作
+    print(items)
+    for i in range(1,items+1):  # 爬item動作
         queue.put(i)
     threads = []
     for j in range(numThread):  # 建立多執緒清單

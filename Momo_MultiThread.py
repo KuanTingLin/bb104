@@ -1,8 +1,9 @@
 # 起手式
 import requests
 from bs4 import BeautifulSoup as bs
-from queue import Queue
-from threading import Thread
+# from queue import Queue
+# from threading import Thread
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import datetime
 import json
 import re
@@ -21,40 +22,39 @@ items_data = [] #存單品資料
 headers = {
     "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
 }
-queue = Queue()
-def worker():
-    while not queue.empty():
-        items = queue.get()
-        crawler(items)
-
-def crawler(items):
-    if _step_ == True:# 將商品頁的每一頁網址抓下來
-        res = requests.get(listmomoall[items], headers=headers)
-        s = bs(res.text, 'html5lib')
-        eachgood = s.select("div.prdListArea > ul > li.eachGood > a")  # 單頁商品數
-        for j in range(len(eachgood)):
-            listmomo_goods.append(URLsource + eachgood[j].get("href", "no"))
-            print("now is go  " + str(items) + ":" + str(j))
-    else :# 抓所有品項資訊
-        res = requests.get(listmomo_goods[items], headers=headers)
-        s = bs(res.text, 'html5lib')
-        title = s.select_one("h1").text
-        Catalog = []
-        sCatalog = s.select("#bt_2_layout_NAV > ul > li")
-        for i in range(len(sCatalog)):
-            Catalog.append(sCatalog[i].text)
-        del_price = s.select("ul.prdPrice > li")[0].select("del")
-        if len(del_price) > 0:
-            del_price = s.select("ul.prdPrice > li")[0].select("del")[0].text
-            now_price = s.select("ul.prdPrice > li")[1].select("span")[0].text
-        else:
-            del_price = ""
-            now_price = s.select("ul.prdPrice > li")[0].select("span")[0].text
-        print("now are go  " + str(items) + ":")
-        item_data = {"title": title, "catalog": Catalog,
-                     "price": [{"del_price": del_price, 'now_price': now_price}]}
-        items_data.append(item_data)
+# queue = Queue()
+# def worker():
+#     while not queue.empty():
+#         items = queue.get()
+#         crawler(items)
+def crawler2(items):
+    res = requests.get(listmomo_goods[items], headers=headers)
+    s = bs(res.text, 'html5lib')
+    s_price = s.select("ul.prdPrice > li")
+    title = s.select_one("h1").text
+    Catalog = []
+    sCatalog = s.select("#bt_2_layout_NAV > ul > li")
+    for i in range(len(sCatalog)):
+        Catalog.append(sCatalog[i].text)
+    del_price = s_price[0].select("del")
+    if len(del_price) > 0:
+        del_price = del_price[0].text
+        now_price = s_price[1].select("span")[0].text
+    else:
+        del_price = ""
+        now_price = s_price[0].select("span")[0].text
+    print("now are go  " + str(items) + ":")
+    item_data = {"title": title, "catalog": Catalog,
+                 "price": [{"del_price": del_price, 'now_price': now_price}]}
+    items_data.append(item_data)
     print("item " + str(items) + " crawler done")
+def crawler(items):
+    res = requests.get(listmomoall[items], headers=headers)
+    s = bs(res.text, 'html5lib')
+    eachgood = s.select("div.prdListArea > ul > li.eachGood > a")  # 單頁商品數
+    for j in range(len(eachgood)):
+        listmomo_goods.append(URLsource + eachgood[j].get("href", "no"))
+    print("itemspage :  " + str(items) + " crawler done")
 
 if __name__ == "__main__":
     thStart = datetime.now()
@@ -89,37 +89,40 @@ if __name__ == "__main__":
     timeSpent = str(thEnd - thStart).split('.')[0]
     print("first = " + timeSpent);
     pages = len(listmomoall)
-    numThread = 4
+    Thread_num = 4
     print(pages)
-    for i in range(1,pages):  # 爬page動作
-        queue.put(i)
-    threads = []
-    for j in range(numThread):  # 建立多執緒清單
-        threads.append(Thread(target=worker))
-    for i in range(len(threads)):  # 將所有執行緒啟動，worker()開始到queue拿取工作
-        threads[i].start()
-        print("run")
-    for i in range(len(threads)):  # 等所有worker()工作完畢
-        threads[i].join()
-
+    threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
+    futures = [threads.submit(crawler, page) for page in range(pages)]  # 將工作事項交給futures管理
+    wait(futures)
+    # for i in range(1,pages):  # 爬page動作
+    #     queue.put(i)
+    # threads = []
+    # for j in range(numThread):  # 建立多執緒清單
+    #     threads.append(Thread(target=worker))
+    # for i in range(len(threads)):  # 將所有執行緒啟動，worker()開始到queue拿取工作
+    #     threads[i].start()
+    #     print("run")
+    # for i in range(len(threads)):  # 等所有worker()工作完畢
+    #     threads[i].join()
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
     print("upper = " + timeSpent);
-    _step_ = False #切換
-    print("下半段")
 
     items = len(listmomo_goods)
     print(items)
-    for i in range(1,items+1):  # 爬item動作
-        queue.put(i)
-    threads = []
-    for j in range(numThread):  # 建立多執緒清單
-        threads.append(Thread(target=worker))
-    for i in range(len(threads)):  # 將所有執行緒啟動，worker()開始到queue拿取工作
-        threads[i].start()
-        print("run2")
-    for i in range(len(threads)):  # 等所有worker()工作完畢
-        threads[i].join()
+    threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
+    futures = [threads.submit(crawler2, item) for item in range(items)]  # 將工作事項交給futures管理
+    wait(futures)
+    # for i in range(1,items+1):  # 爬item動作
+    #     queue.put(i)
+    # threads = []
+    # for j in range(numThread):  # 建立多執緒清單
+    #     threads.append(Thread(target=worker))
+    # for i in range(len(threads)):  # 將所有執行緒啟動，worker()開始到queue拿取工作
+    #     threads[i].start()
+    #     print("run2")
+    # for i in range(len(threads)):  # 等所有worker()工作完畢
+    #     threads[i].join()
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
 

@@ -68,11 +68,11 @@ def crawler_item_data(item) :
     item_data["original_price"] = int(ol_price)  # 原價格塞入原價格
     all_data.append(item_data) # 存取全部資料囉
     print(item)
-    # if 0 == item%10 :
-    #     with open('D:\專題\momo_Data_roadrun.json', 'w', encoding="utf-8") as f:  # 將all_data存為json檔
-    #         f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
-    #     all_data[:] = []
-    #     print(str(item) + "  存檔")
+    if 0 == item%1000 :
+        with open('D:\專題\momo_Data_roadrun.json', 'a', encoding="utf-8") as f:  # 將all_data存為json檔
+            f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
+        all_data[:] = []
+        print(str(item) + "  存檔")
 
 
 
@@ -102,21 +102,21 @@ if __name__ == "__main__":
     print(timeSpent)
     print(len(Cat_page_urls))
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
-    futures = [threads.submit(crawler_item_url, page) for page in range(10)]  # 將工作事項交給futures管理
+    futures = [threads.submit(crawler_item_url, page) for page in range(len(Cat_page_urls)+1)]  # 將工作事項交給futures管理
     wait(futures)
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
     print(timeSpent)
     print(len(Goods_urls))
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
-    futures = [threads.submit(crawler_item_data, item) for item in range(10)]  # 將工作事項交給futures管理
+    futures = [threads.submit(crawler_item_data, item) for item in range(len(Goods_urls))]  # 將工作事項交給futures管理
     wait(futures)
 
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
     print(all_data)
-    # with open('D:\專題\momo_Data_roadrun.json', 'w', encoding="utf-8") as f:  # 將all_data存為json檔
-    #     f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
+    with open('D:\專題\momo_Data_roadrun.json', 'a', encoding="utf-8") as f:  # 將all_data存為json檔
+        f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
 
     print("執行緒:" + str(Thread_num))
     print("筆數:" + str(len(all_data)))

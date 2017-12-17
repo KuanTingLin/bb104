@@ -21,38 +21,39 @@ all_data = [] # 全部資料
 
 # 取得商品網址
 def crawler_item_url(page) :
-    rep_itemurl = requests.get(Cat_page_urls[page], headers=headers)
-    ss = BeautifulSoup(rep_itemurl.text, 'html5lib')
+    rep_item_url = requests.get(Cat_page_urls[page], headers=headers)
+    ss = BeautifulSoup(rep_item_url.text, 'html5lib')
     goods_urls = ss.select("li.eachGood > a")
-    for j in range(len(goods_urls)):
-        r = re.findall('/goods/GoodsDetail.jsp\?i_code=\d*.*', goods_urls[j].get("href"))
+    for url in goods_urls:
+        r = re.findall('/goods/GoodsDetail.jsp\?i_code=\d*.*', url.get("href"))
         Goods_urls.append(domain + r[0])
     print(page)
 
 
 # 取得所有商品資訊
 def crawler_item_data(item) :
-    item_data = {
-        "id": "",
-        "title": "",
-        "url": "",
-        "discount_price": 0,
-        "original_price": 0,
-        "tags": []
-    }
+    # item_data = {
+    #     "id": "",
+    #     "title": "",
+    #     "url": "",
+    #     "discount_price": 0,
+    #     "original_price": 0,
+    #     "tags": []
+    # }
+    item_data = {}
     resp = requests.get(Goods_urls[item], headers=headers)
     s = BeautifulSoup(resp.text, 'html5lib')
     item_data["title"] = s.select_one("h1").text  # 標題塞入標題
     item_data["url"] = Goods_urls[item]
     itemid_tag = s.select("ul#categoryActivityInfo > li")
-    for it_des in range(0, len(itemid_tag)):
+    for it_des in itemid_tag:
         try:
-            item_data['id'] = re.findall("\d{4}\d+", itemid_tag[it_des].text)[0]  # id塞入id
+            item_data['id'] = re.findall("\d{4}\d+", it_des.text)[0]  # id塞入id
         except:
-            item_data["tags"].append(itemid_tag[it_des].text)  # 描述塞入Tag
+            item_data["tags"].append(it_des.text)  # 描述塞入Tag
     item_tag = s.select("div.related_category > dl > * > a")
-    for tag in range(1,len(item_tag)):
-        item_data["tags"].append(item_tag[tag].text)  # 類別塞入Tag
+    for tag in item_tag:
+        item_data["tags"].append(tag.text)  # 類別塞入Tag
     # 舊價格、新價格
     ol_price = s.select("ul.prdPrice > li")[0].select("del")
     if len(ol_price) > 0:
@@ -81,31 +82,32 @@ if __name__ == "__main__":
     thStart = datetime.now()
     resp = requests.get(URL, headers=headers)
     s = BeautifulSoup(resp.text, 'html5lib')
+
     # 所有分類網址
-    for i in range(len(s.select("ul#bt_cate_top > li > a"))):  # 左側目錄欄位的每個欄位連結
-        r = re.findall('/category/DgrpCategory.jsp\?d_code=\d*.*', s.select("ul#bt_cate_top > li > a")[i].get('href'))  # 找d_code分類的網址
+    for ss in s.select("ul#bt_cate_top > li > a"):  # 左側目錄欄位的每個欄位連結
+        r = re.findall('/category/DgrpCategory.jsp\?d_code=\d*.*', ss.get('href'))  # 找d_code分類的網址
         Cat_url_list.append(domain + r[0]) if len(r) > 0 else r
     # 取得所有頁數資訊
     print(len(Cat_url_list))
-    for i in range(len(Cat_url_list)):
+    for url in Cat_url_list:
         # 頁數
         try:
-            r = re.findall("/\s*(\d*)",BeautifulSoup(requests.get(Cat_url_list[i], headers=headers).text, 'html5lib') \
+            r = re.findall("/\s*(\d*)",BeautifulSoup(requests.get(url, headers=headers).text, 'html5lib') \
                            .select_one("div.pageArea > dl > dt > span").text)  # 總頁數
             for page in range(1, int(r[0]) + 1):
-                Cat_page_urls.append(Cat_url_list[i] + Match_page.format(page))
+                Cat_page_urls.append(url + Match_page.format(page))
         except:
             # 直接存原網址
             Cat_page_urls.append(Cat_url_list[i])
     thEnd = datetime.now()
-    timeSpent = str(thEnd - thStart).split('.')[0]
+    timeSpent = str(thEnd - thStart)
     print(timeSpent)
     print(len(Cat_page_urls))
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
     futures = [threads.submit(crawler_item_url, page) for page in range(len(Cat_page_urls)+1)]  # 將工作事項交給futures管理
     wait(futures)
     thEnd = datetime.now()
-    timeSpent = str(thEnd - thStart).split('.')[0]
+    timeSpent = str(thEnd - thStart)
     print(timeSpent)
     print(len(Goods_urls))
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
@@ -113,11 +115,9 @@ if __name__ == "__main__":
     wait(futures)
 
     thEnd = datetime.now()
-    timeSpent = str(thEnd - thStart).split('.')[0]
+    timeSpent = str(thEnd - thStart)
     print(all_data)
     with open('D:\專題\momo_Data_roadrun.json', 'a', encoding="utf-8") as f:  # 將all_data存為json檔
         f.write(json.dumps(all_data, ensure_ascii=False, indent=4))
 
-    print("執行緒:" + str(Thread_num))
-    print("筆數:" + str(len(all_data)))
     print("耗時:" + timeSpent)

@@ -56,7 +56,7 @@ def crawler(items):
         listmomo_goods.append(URLsource + eachgood[j].get("href", "no"))
     print("itemspage :  " + str(items) + " crawler done")
 
-if __name__ == "__main__":
+def main():
     thStart = datetime.now()
     resp = requests.get(URL,headers = headers)
     s = bs(resp.text, 'html5lib')
@@ -83,13 +83,16 @@ if __name__ == "__main__":
         else :
             r = rls[0] + pageURL1
         for page in range(1,(pages+1)):
-            r%page #商品頁每一頁的網址
-            listmomoall.append(r)
+            # r%page #商品頁每一頁的網址
+            listmomoall.append(r%page)
+
+    ###計時
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
-    print("first = " + timeSpent);
+    print("first = " + timeSpent)
+    ###
     pages = len(listmomoall)
-    Thread_num = 4
+    Thread_num = 4 #多執行緒數目
     print(pages)
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
     futures = [threads.submit(crawler, page) for page in range(pages)]  # 將工作事項交給futures管理
@@ -104,15 +107,16 @@ if __name__ == "__main__":
     #     print("run")
     # for i in range(len(threads)):  # 等所有worker()工作完畢
     #     threads[i].join()
+    ### 計時
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
-    print("upper = " + timeSpent);
-
+    print("upper = " + timeSpent)
+    ###
     items = len(listmomo_goods)
     print(items)
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
     futures = [threads.submit(crawler2, item) for item in range(items)]  # 將工作事項交給futures管理
-    wait(futures)
+    wait(futures) #等待工作完成，此程序才會繼續動作
     # for i in range(1,items+1):  # 爬item動作
     #     queue.put(i)
     # threads = []
@@ -123,12 +127,16 @@ if __name__ == "__main__":
     #     print("run2")
     # for i in range(len(threads)):  # 等所有worker()工作完畢
     #     threads[i].join()
+    # 時間結束
     thEnd = datetime.now()
     timeSpent = str(thEnd - thStart).split('.')[0]
 
     with open('D:\專題\momo_Data_roadrun.json', 'w', encoding="utf-8") as f:  # 將resList存為json檔
         f.write(json.dumps(items_data, ensure_ascii=False, indent=4))
 
-    print("執行緒:" + str(numThread))
+    print("執行緒:" + str(Thread_num))
     print("筆數:" + str(len(items_data)))
     print("耗時:" + timeSpent)
+
+if __name__ == "__main__":
+    main()

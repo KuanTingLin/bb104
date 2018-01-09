@@ -44,8 +44,8 @@ class Crawler():
         print("Done crawling item: " + str(items))
 
     def craw_goods_url(self, items, goods, headers, url_source):
-        res = requests.get(items, headers=headers)
-        soup = BeautifulSoup(res.text, 'html5lib')
+        resp = requests.get(items, headers=headers)
+        soup = BeautifulSoup(resp.text, 'html5lib')
         eachgood = soup.select("div.prdListArea > ul > li.eachGood > a")  # 單頁商品數
         for good in eachgood:
             goods.append(url_source + good.get("href", "no"))

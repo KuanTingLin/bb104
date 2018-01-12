@@ -10,6 +10,23 @@ import re
 
 _step_ = True
 
+from datetime import datetime
+
+
+class Stopwatch():
+    start = None
+
+    @staticmethod
+    def stop_start(event):
+        stop = datetime.now()
+        if Stopwatch.start == None:
+            Stopwatch.start = datetime.now()
+            print(event)
+        else:
+            time_elapsed = str(stop - Stopwatch.start)
+            Stopwatch.start = stop
+            print("break point " + event + " time elapsed : " + time_elapsed)
+
 
 # queue = Queue()
 # def worker():
@@ -19,7 +36,9 @@ _step_ = True
 class Crawler():
     # def __init__(self): #當想要在呼叫時就做某些事的時候才使用
     #     pass
-    def craw_item_data(self, items, datas, headers):
+
+    @staticmethod
+    def craw_item_data(items, datas, headers):
         resp = requests.get(items, headers=headers)
         soup = BeautifulSoup(resp.text, 'html5lib')
 
@@ -37,13 +56,20 @@ class Crawler():
         else:
             price = ""
             discount_price = li_prices[0].select("span")[0].text
-        print("now are go  " + str(items) + ":")
         item_data = {"title": title, "categories": categories,
                      "price": [{"price": price, 'discount price': discount_price}]}
         datas.append(item_data)
-        print("Done crawling item: " + str(items))
+        count.append("success")
+        item_num = len(count)
+        if 0 == item_num%1000 :
+            with open('D:\woodnata_note\data_{}.json'.format(item_num), 'a', encoding="utf-8") as f:  # 將all_data存為json檔
+                f.write(json.dumps(datas[:1000], ensure_ascii=False, indent=4))
+                del datas[:1000]
+            print(str(item_num) + "  存檔")
+        print("Done crawling item: " + str(item_num))
 
-    def craw_goods_url(self, items, goods, headers, url_source):
+    @staticmethod
+    def craw_goods_url(items, goods, headers, url_source):
         resp = requests.get(items, headers=headers)
         soup = BeautifulSoup(resp.text, 'html5lib')
         eachgood = soup.select("div.prdListArea > ul > li.eachGood > a")  # 單頁商品數
@@ -64,7 +90,7 @@ def main():
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
     }
-    th_start = datetime.now()
+    Stopwatch.stop_start("work")
     resp = requests.get(URL, headers=headers)
     soup = BeautifulSoup(resp.text, 'html5lib')
     for a in soup.select("a"):  # 抓主頁
@@ -77,8 +103,8 @@ def main():
             category_urls.append(DOMAIN + r_category[0])
         if len(r_goods) > 0:
             item_urls.append(DOMAIN + r_goods[0])
-    print(category_urls)
-    print(item_urls)
+    print(len(category_urls))
+    print(len(item_urls))
     for i in range(len(category_urls)):  # 將每個商品頁的每一頁網址抓下來
         resp = requests.get(category_urls[i], headers=headers)
         soup = BeautifulSoup(resp.text, 'html5lib')
@@ -95,9 +121,7 @@ def main():
             product_urls.append(r % page)
 
     ###計時
-    th_end = datetime.now()
-    time_spent = str(th_end - th_start).split('.')[0]
-    print("first = " + time_spent)
+    Stopwatch.stop_start("all the page")
     ###
     pages = len(product_urls)
     Thread_num = 4  # 多執行緒數目
@@ -118,15 +142,15 @@ def main():
     #     print("run")
     # for i in range(len(threads)):  # 等所有worker()工作完畢
     #     threads[i].join()
-    th_end = datetime.now()  ### 計時
-    time_spent = str(th_end - th_start).split('.')[0]
-    print("upper = " + time_spent)
+
+    ### 計時
+    Stopwatch.stop_start("craw all items")
     ###
     items = len(item_urls)
     print(items)
     threads = ThreadPoolExecutor(Thread_num)  # 設定多執行緒
-    futures = [threads.submit(crawler.craw_item_data, item_urls[item], item_datas, headers) for item in
-               range(items)]  # 將工作事項交給futures管理
+    futures = [threads.submit(crawler.craw_item_data, item_urls[item], item_datas, headers)
+               for item in range(items)]  # 將工作事項交給futures管理
     wait(futures)  # 等待工作完成，此程序才會繼續動作
 
     # for i in range(1,items+1):  # 爬item動作
@@ -140,16 +164,15 @@ def main():
     # for i in range(len(threads)):  # 等所有worker()工作完畢
     #     threads[i].join()
 
-    th_end = datetime.now()  # 時間結束
-    time_spent = str(th_end - th_start).split('.')[0]
-
-    with open('D:\專題\momo_Data_roadrun.json', 'w', encoding="utf-8") as f:  # 將resList存為json檔
+    ### 計時結束
+    Stopwatch.stop_start("all items datas done ")
+    ###
+    with open('D:\專題\momo_Data_roadrun.json', 'a', encoding="utf-8") as f:  # 將resList存為json檔
         f.write(json.dumps(item_datas, ensure_ascii=False, indent=4))
 
     print("執行緒:" + str(Thread_num))
-    print("筆數:" + str(len(item_datas)))
-    print("耗時:" + time_spent)
 
 
 if __name__ == "__main__":
+    count = []
     main()
